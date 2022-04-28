@@ -1,8 +1,8 @@
-// 다른 노드와 통신을 위한 서버 
+// 다른 노드와 통신을 위한 서버  // 원장공유
 // peer to peer / node 대 node / 개인과 개인
 // 서로 필요한 정보들을 서로서로 공유하는 탈중앙화 시스템
 
-import WebSocket from 'ws';
+//import WebSocket from 'ws';
 import { WebSocketServer } from 'ws' 
 
 // 아래 매개변수 ws가 계속 늘어나기 때문에 저장해줄 자료구조를 만들어보자

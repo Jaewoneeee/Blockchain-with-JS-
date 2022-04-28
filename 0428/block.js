@@ -26,6 +26,7 @@ class Block {
 // 위에 block안의 외부에서 주어지는 index값들을 합해서 sha256 으로 계산? 변환? / 이걸 쓰려면 CryptoJS 모듈을 쓰면된다
 const calculateHash = (index, data, timestamp, previousHash) => {
     return CryptoJS.SHA256((index + data + timestamp + previousHash).toString()).toString();
+    //return CryptoJS.SHA256((1).toString()).toString();
     //return CryptoJS.SHA256((2).toString()).toString();
 }
 
