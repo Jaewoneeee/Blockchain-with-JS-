@@ -11,8 +11,11 @@ import { connectionToPeer, getPeers, sendMessage } from './p2pServer.js';
 
 // 초기화 함수
 const initHttpServer = (myHttpPort) => {
+    
     const app = express();
+    
     app.use(bodyParser.json()); 
+    //app.use(express.static(__dirname + "/public"));
 
     app.get('/', (req, res) => {
         res.send('Hello BlockChain!')

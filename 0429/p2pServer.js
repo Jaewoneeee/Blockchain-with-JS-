@@ -25,10 +25,11 @@ const getPeers = () => {
     return sockets
 }
 
+// 연결되는걸 확인하는거지 
 const initP2PServer = (p2pPort) => {
     const server = new WebSocketServer({port:p2pPort});
 
-    // websocke 내에서 일어나는 event는 정의되어 있다. 그 이벤트가 발생했을때 우리는 어떤 함수를 실행(호출)할 것인지 정해주면 된다. 
+    // websocket 내에서 일어나는 event는 정의되어 있다. 그 이벤트가 발생했을때 우리는 어떤 함수를 실행(호출)할 것인지 정해주면 된다. 
     server.on('connection', (ws) => {
         initConnection(ws) // 만들어야할 함수
         console.log('똑똑. 누가 방문함')
@@ -51,9 +52,11 @@ const connectionToPeer = (newPeer) => {
 
 // 내가 서버도 되고, 클라이언트도 된 상태네
 // 그래서 도대체 지금 이게 뭔 상태인가???? 
-// 서로 통신을 위해 신호가 간거지. 아하 채팅처럼 이해해보자 
+// 서로 통신을 위해 신호가 간거지. 
+// 웹소켓 연결시 콜솔로 확인이 가능했고, 누가 내걸 연결했을때도 마찬가지. 
+// sockets 배열안에 차곡차곡 ws가 쌓인거지 
 //====
-
+                           // initConnection이 일어날때 등록? 매개변수로 들어갔던 ws주소 
 const initMessageHandler = (ws) => {
     ws.on('message', (data) => {  // 메세지가 있으면 data가 있다 / 저 message란 이벤트가 발동되면 밑에 함수를 발동해라
         const message = JSON.parse(data) // 그 데이터를 JSON 형태로 바꿔주기
@@ -78,11 +81,14 @@ const write = (ws, message) => {
     console.log('write()', message)
     ws.send(JSON.stringify(message))    // send함수를 사용하여 보내기 / JSON형태를 문자열로 stringfy
 }   // 뒤 메세지를 앞 웹소켓에 보낸다 
+   // 상대방 ws  send시 이벤트발생
 
 const sendMessage = (message) => {
     sockets.forEach( (socket) => {   // sockets에서 하나씩 돌아가는게 socket 헷갈리지 말자
         write(socket, message);  // 내가연결하고 있는 모든 소켓에게 write함수 실행 (broadcast)
     });
 }
+
+// 이 메세지를 보내는 구조가 좀 헷갈림
 
 export { initP2PServer, connectionToPeer, getPeers, sendMessage }

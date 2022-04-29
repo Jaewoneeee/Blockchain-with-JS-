@@ -7,6 +7,7 @@
     hash : 블록 내부 데이터로 생성한 sha256 값 (블록의 유일성)
     previousHash : 이전 블록의 해쉬 (이전 블록을 참조)
 
+    추후에 인제 difficulty랑 nonce추가해준거지 ㅇㅇ
 */
 
 import CryptoJS from 'crypto-js'
@@ -56,7 +57,7 @@ const createGenesisBlock = () => {
     return genesisBlock
 }
 
-// 문재 해결을 검사하는 함수
+// 문제 해결을 검사하는 함수
 // hash : 검사할 hash값
 // difficulty : 0 이 몇개 일건지
 const hashMatchDifficulty = (hash, difficulty) => {
