@@ -4,6 +4,7 @@
 import express from 'express';
 import bodyParser from 'body-parser';
 import { getBlocks, createBlock } from './block.js';
+import { connectionToPeer, getPeers, sendMessage } from './p2pServer.js';
 
 // common js에서 통쨰로 다 불러옴 그래서 위 import가 더 빠름
 //const express = require('express')
@@ -26,6 +27,22 @@ const initHttpServer = (myHttpPort) => {
         // 여기서 뭐 어찌저찌 postman에서 쏴주는거 해야겠지?
         res.send(createBlock(req.body.data)); // 요게 이제 우리가 만들 block data
         console.log(req.body.data)
+    })
+
+    // ================================================
+    // 소켓연결 확인하기
+    app.get('/peers', (req, res) => {
+        res.send(getPeers());
+    })
+
+    // p2p 추가
+    app.post('/addPeer', (req, res) => {
+        res.send(connectionToPeer(req.body.data)) // 여기서 보낸 data가 newPeer로 가는거지 매개변수로
+    })
+
+    // 웹소켓 메세지
+    app.post('/sendMessage', (req, res) => {
+        res.send(sendMessage(req.body.data))
     })
 
     //매개변수 2개 / 함수포트 , 화살표함수
