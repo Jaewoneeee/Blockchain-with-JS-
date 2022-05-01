@@ -62,7 +62,7 @@ const createGenesisBlock = () => {
 // difficulty : 0 이 몇개 일건지
 const hashMatchDifficulty = (hash, difficulty) => {
     // 1. 16진수를 2진수로 먼저 바꿔주기
-    const binaryHash = hexToBinary(hash);
+    const binaryHash = hexToBinary(hash); 
     // 2. 필요한 0의 갯수를 정의하기 (0이 difficulty개 만큼 반복되는 문제열을 만든다)
     const requiredPrefix = '0'.repeat(difficulty)
     // 3. 1의 hash값이 2로 시작을 하느냐
@@ -107,7 +107,7 @@ const findNonce = (index, data, timestamp, previousHash, difficulty) => {
         let hash = calculateHash(index, data, timestamp, previousHash, difficulty, nonce) // 다른값은 고정된 상태에서 noce만 1씩올라가면서 찾는다. 아래 nonce++
 
         if (hashMatchDifficulty(hash, difficulty)) {  
-            return nonce; //만약 208이 나왔으면 hasr값을 계속 돌려서 208번쨰에 우리가 원하는 hash값이 됐다는 뜻
+            return nonce; //만약 208이 나왔으면 hash값을 계속 돌려서 208번쨰에 우리가 원하는 hash값이 됐다는 뜻
         }
         nonce++; 
     }
@@ -128,11 +128,13 @@ const createBlock = (blockData) => {
     const previousBlock = blocks[blocks.length - 1]; // 맨마지막 block불러오기
     const nextIndex = previousBlock.index + 1; // 맨마지막블럭 index값의 +1 
     const nextTimestamp = new Date().getTime() / 1000 // 현재시간을 가져와서 초단위로 나눠주기
-    const nextDifficulty = 5; //추가
-    // findNonce 가 통과가 되면 블록이 생성된다. // 순서 주의하기!!!
-    const nextNonce = findNonce(nextIndex, blockData, nextTimestamp, previousBlock.hash, nextDifficulty); //추가
-    const nextHash = calculateHash(nextIndex, blockData, nextTimestamp, previousBlock.hash, nextDifficulty, nextNonce) // 앞에서 가져온 값들 이용하기
 
+    // PoW를 위한 추가코드 
+    const nextDifficulty = 20; 
+     // findNonce 가 통과가 되면 블록이 생성된다. // 순서 주의하기!!!
+    const nextNonce = findNonce(nextIndex, blockData, nextTimestamp, previousBlock.hash, nextDifficulty); 
+
+    const nextHash = calculateHash(nextIndex, blockData, nextTimestamp, previousBlock.hash, nextDifficulty, nextNonce) // 앞에서 가져온 값들 이용하기
     const newBlock = new Block(nextIndex, blockData, nextTimestamp, nextHash, previousBlock.hash, nextDifficulty , nextNonce); // 여기도 수정해주고 
 
 
