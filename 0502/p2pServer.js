@@ -4,13 +4,19 @@
 
 import WebSocket from 'ws';
 import { WebSocketServer } from 'ws' 
+import { getBlocks, getLatestBlock } from './block.js'
 
 // 메세지 타입 
 const MessageType = {
-    RESPONCE_MESSAGE : 0,  // 메세지 받을때
-    SENT_MESSAGE : 1       // 메세지 보낼때
+    //RESPONCE_MESSAGE : 0,  // 메세지 받을때
+    //SENT_MESSAGE : 1       // 메세지 보낼때
 
- 
+    // 최신 블록 요청 
+    QUERY_LATEST : 0,
+    // 모든 블록 요청
+    QUERY_ALL : 1,
+    // 블록 전달 
+    RESPONSE_BLOCKCHAIN : 2    
 }
 
 
@@ -62,6 +68,14 @@ const initMessageHandler = (ws) => {
 
         switch(message.type)
         {
+            case MessageType.QUERY_LATEST:  // 블럭을 받는코드 
+                console.log(responseLatestMessage)()
+                break;
+            case MessageType.QUERY_ALL: // 니 블럭좀 달라고 요청하는거 (비교를해야하니까?)
+                break;
+            case MessageType.RESPONSE_BLOCKCHAIN: //  상대방이 주는 블록을 받는거.(비교한다음에 나한테 주겠지) 누가 블럭을 보내줬다. 즉 나는 받은 상태. 
+                break;
+
             //==== 메세지 테스트
             // case MessageType.RESPONCE_MESSAGE:  // 메시지 받았을 때 
             //     break;
@@ -78,6 +92,31 @@ const initMessageHandler = (ws) => {
     })
 }
 
+// 상대방이 나한테 마지막거 보내다라고 요청 
+const queryLatestMessage = () => {
+    return ({ 
+          "type" : MessageType.QUERY_LATEST,
+          "data" : null })
+}
+
+const queryAllMessage = () => {
+    return ({ 
+          "type" : MessageType.QUERY_ALL,
+          "data" : null })
+}
+
+// 우리가 가지고 있는 제일 마지막것만 보내는 것
+const responseLatestMessage = () => {
+    return ({ 
+        "type" : MessageType.RESPONSE_BLOCKCHAIN,
+        "data" : JSON.stringify( getLatestBlock() /* 내가 가지고 있는 체인의 마지막 블록*/) })    
+}
+
+const responseAllMessage = () => {
+    return ({ 
+        "type" : MessageType.RESPONSE_BLOCKCHAIN,
+        "data" : JSON.stringify( getBlocks() /* 내가 가지고 있는 전체 블록*/) })    
+}
 
 
 // 여기는 나의 상태, 코드에서 발생하는거고 
