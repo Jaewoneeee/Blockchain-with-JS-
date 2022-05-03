@@ -4,7 +4,7 @@
 
 import WebSocket from 'ws';
 import { WebSocketServer } from 'ws' 
-import { getBlocks, getLatestBlock } from './block.js'
+import { getBlocks, getLatestBlock, createBlock, addBlock, isValidNewBlock } from './block.js'
 
 // 메세지 타입 
 const MessageType = {
@@ -44,6 +44,8 @@ const initP2PServer = (p2pPort) => {
 const initConnection = (ws) => {
     sockets.push(ws)
     initMessageHandler(ws) // 메세지 핸들러는 여기서 호출!
+
+    write(ws, queryAllMessage());
 }
 
 // 다른사람의 정보를 가지고 접속할 수 있는 환경
@@ -58,7 +60,7 @@ const connectionToPeer = (newPeer) => {
 // 서로 통신을 위해 신호가 간거지. 
 // 웹소켓 연결시 콜솔로 확인이 가능했고, 누가 내걸 연결했을때도 마찬가지. 
 // sockets 배열안에 차곡차곡 ws가 쌓인거지 
-//====
+//=====
 
 // 여기는 상대방 코드에서 발생하는거다 
                            // initConnection이 일어날때 등록? 매개변수로 들어갔던 ws주소 
@@ -69,49 +71,93 @@ const initMessageHandler = (ws) => {
         switch(message.type)
         {
             case MessageType.QUERY_LATEST:  // 블럭을 받는코드 
-                console.log(responseLatestMessage)()
+                console.log(responseLatestMessage())
                 break;
             case MessageType.QUERY_ALL: // 니 블럭좀 달라고 요청하는거 (비교를해야하니까?)
+                write(ws, responseAllMessage());
                 break;
             case MessageType.RESPONSE_BLOCKCHAIN: //  상대방이 주는 블록을 받는거.(비교한다음에 나한테 주겠지) 누가 블럭을 보내줬다. 즉 나는 받은 상태. 
+                console.log(ws._socket.remoteAddress, ' : ', message.data);
+                //handleBlockChainResponse(message);
+                replaceBlockchain(message.data);
                 break;
-
-            //==== 메세지 테스트
-            // case MessageType.RESPONCE_MESSAGE:  // 메시지 받았을 때 
-            //     break;
-            case MessageType.SENT_MESSAGE: // 메시지 보낼 때
-                console.log(ws._socket.remoteAddress, ' : ', message.message);
-                //console.log(message.message);
-                //write(ws, message); // 보내는 함수는 여기서 호출!
-                break;
-
-                // 다른사람이 보낼때 SEND_message로 보내고있고
-                // 나도 받을때 SEND_MESSAGE로 받고 있다 그래서 사실상 위에 RESPONCE가 없다 
-                // 다른사람이 본내거를 보는거라서 send_message로 되어있음. 헷갈릴수 있으니 주의 
         }
     })
 }
 
-// 상대방이 나한테 마지막거 보내다라고 요청 
-const queryLatestMessage = () => {
-    return ({ 
-          "type" : MessageType.QUERY_LATEST,
-          "data" : null })
+// 올바른 데이터를 가진 블록인지 검증하기
+const isValidBlockchain = (receiveBlochain) => {
+    // 같은 제네시스 블록인가
+    if (JSON.stringify(receiveBlochain[0]) !== JSON.stringify(getBlocks()[0])){
+        console.log(receiveBlochain[0] , "내거")
+        console.log(getBlocks()[0] , "남거")
+        return false
+    }
+    
+    // 체인 내의 모든 블록을 확인
+    let tempBlock = receiveBlochain[0];
+    for (let i = 1; i < receiveBlochain.length; i++)
+    {
+        if (isValidNewBlock(receiveBlochain[i], receiveBlochain[i - 1]) == false)
+        {
+            return false
+        }
+    }
+
+    return true
 }
 
+const replaceBlockchain = (receiveBlochain) => {
+    if (isValidBlockchain(receiveBlochain))
+    {
+        let blocks = getBlocks();
+        if (receiveBlochain.length > getBlocks().length)
+        {
+            console.log("길이가 짧다")
+            blocks = receiveBlochain;
+        }
+        else if (receiveBlochain.length == getBlocks().length && random.boolean())
+        {
+            console.log("길이가 같다")
+            blocks = receiveBlochain;
+        }
+    }
+    else {
+        console.log('받은 블록체인에 문제가 있음')
+    }
+} 
+
+// 블록 바꾸기
+const handleBlockChainResponse = (receiveBlochain) => {
+    // 받은 블록체인이 현재 블록체인보다 짧다면 안바꿈 
+
+    // 받은 블록체인이 현재 블록체인과 같다면 바꾸거나 안바꿈 // 섞는데 의의를 둔다. 
+
+    // 받은 블록체인이 현재 블록체인보다 길면 바꿈
+}
+
+// 다른 노드한테 마지막 블록을 요청하는 함수
+const queryLatestMessage = () => {  
+    return ({ 
+          "type" : MessageType.QUERY_LATEST,
+          "data" : null })  // 나는 줄게없고 요청만하니까 null
+}
+
+// 다른 노드한테 전체 블록을 요청하는 함수
 const queryAllMessage = () => {
     return ({ 
           "type" : MessageType.QUERY_ALL,
           "data" : null })
 }
 
-// 우리가 가지고 있는 제일 마지막것만 보내는 것
+// 요청을 받았을때, 마지막블록을 요청한 쪽에 보내는 함수
 const responseLatestMessage = () => {
     return ({ 
         "type" : MessageType.RESPONSE_BLOCKCHAIN,
         "data" : JSON.stringify( getLatestBlock() /* 내가 가지고 있는 체인의 마지막 블록*/) })    
 }
 
+// 요청을 받았을때, 전체블록을 요청한 쪽에 보내는 함수
 const responseAllMessage = () => {
     return ({ 
         "type" : MessageType.RESPONSE_BLOCKCHAIN,
@@ -126,12 +172,28 @@ const write = (ws, message) => {
 }   // 뒤 메세지를 앞 웹소켓에 보낸다 
    // 상대방 ws  send시 이벤트발생
 
-const sendMessage = (message) => {
+const broadcasting = (message) => {
     sockets.forEach( (socket) => {   // sockets에서 하나씩 돌아가는게 socket 헷갈리지 말자
         write(socket, message);  // 내가연결하고 있는 모든 소켓에게 write함수 실행 (broadcast)
     });
 }
 
-// 이 메세지를 보내는 구조가 좀 헷갈림
+// 내가 새로운 블록을 채굴했을 때 연결된 노드들에게 전파
+// 사실상 정리하는 함수. 원래 block.js에 있었는데 구조가 여러군데 겹쳐지기 때문에 p2p서버쪽에서 합쳐서 한다.
+const mineBlock = (blockData) => {
+    const newBlock = createBlock(blockData);
+    if (addBlock(newBlock, getLatestBlock()))
+    {
+        // 전파 
+        broadcasting(responseLatestMessage());
+        // responseLatestMessage 는 그냥 값을 return만해주는거기 때문에
+        // 여기서 받아온 값을 broadcasting함수에 매개변수로 넣기 
 
-export { initP2PServer, connectionToPeer, getPeers, sendMessage }
+        //return true;
+    }
+    return false;
+}
+
+
+
+export { initP2PServer, connectionToPeer, getPeers, broadcasting, mineBlock }

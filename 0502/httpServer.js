@@ -4,7 +4,7 @@
 import express from "express";
 import bodyParser from "body-parser";
 import { getBlocks, createBlock } from "./block.js";
-import { getPeers, connectionToPeer, sendMessage } from "./p2pServer.js";
+import { getPeers, connectionToPeer, mineBlock } from "./p2pServer.js";
 
 // common js에서 통쨰로 다 불러옴 그래서 위 import가 더 빠름
 //const express = require('express')
@@ -31,6 +31,11 @@ const initHttpServer = (myHttpPort) => {
     console.log(req.body.data);
   });
 
+  // 함수를 좀 합쳐보자
+  app.post('/mineBlock', (req, res) => {
+    res.send(mineBlock(req.body.data));
+  })
+
   // ================================================
   // 소켓연결 확인하기
   app.get("/peers", (req, res) => {
@@ -43,9 +48,9 @@ const initHttpServer = (myHttpPort) => {
   });
 
   // 웹소켓 메세지
-  app.post("/sendMessage", (req, res) => {
-    res.send(sendMessage(req.body.data));
-  });
+  // app.post("/sendMessage", (req, res) => {
+  //   res.send(sendMessage(req.body.data));
+  // });
 
   app.post("/sendBlock", (req, res) => {
     res.send(responseLatestMessage(req.body.data));

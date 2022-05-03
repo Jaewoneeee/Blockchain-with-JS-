@@ -43,7 +43,8 @@ const calculateHash = (index, data, timestamp, previousHash, difficulty, nonce) 
 
 // genesis block 만들기
 const createGenesisBlock = () => {
-    const genesisBlock = new Block (0, 'genesis block!!', new Date().getTime() / 1000, 0, 0, 0 ,0);
+    const genesisBlock = new Block (0, 'test', 0, 0, 0, 0 ,0);
+    //const genesisBlock = new Block (0, 'genesis block!!', new Date().getTime() / 1000, 0, 0, 0 ,0);
 
     genesisBlock.hash = calculateHash(
         genesisBlock.index,
@@ -115,7 +116,8 @@ const findNonce = (index, data, timestamp, previousHash, difficulty) => {
 
 // 저장해줄 자료구조를 만들기
 // genesisblock을 선언할때 한번만 배열에 값으로 들어가도록. 첫번째 인덱스
-const blocks = [createGenesisBlock()];
+// 노드 연결시 바뀌는경우가 생기기 때문에 let으로 변경
+let blocks = [createGenesisBlock()];
 
 // 외부에 노출할 수 있게 보여주기 
 function getBlocks() {
@@ -131,10 +133,11 @@ const getLatestBlock = () => {
 const createBlock = (blockData) => {
     const previousBlock = blocks[blocks.length - 1]; // 맨마지막 block불러오기
     const nextIndex = previousBlock.index + 1; // 맨마지막블럭 index값의 +1 
+    //const nextTimestamp = new Date().getTime() / 1000 // 현재시간을 가져와서 초단위로 나눠주기
     const nextTimestamp = new Date().getTime() / 1000 // 현재시간을 가져와서 초단위로 나눠주기
 
     // PoW를 위한 추가코드 
-    const nextDifficulty = 20; 
+    const nextDifficulty = 5; 
      // findNonce 가 통과가 되면 블록이 생성된다. // 순서 주의하기!!!
     const nextNonce = findNonce(nextIndex, blockData, nextTimestamp, previousBlock.hash, nextDifficulty); 
 
@@ -142,14 +145,43 @@ const createBlock = (blockData) => {
     const newBlock = new Block(nextIndex, blockData, nextTimestamp, nextHash, previousBlock.hash, nextDifficulty , nextNonce); // 여기도 수정해주고 
 
 
+    // 이걸 아래 함수로 빼버리자. 아래 함수를 함수형태로 불러옴 
+    // if (isValidNewBlock(newBlock, previousBlock)) {
+    //     blocks.push(newBlock);
+    //     return newBlock
+    // }
+
+    // 이것도 그냥 빼고 
+    // if(addBlock(newBlock, previousBlock))
+    //     return newBlock;
+    
+    // console.log('fail to create new block')
+    // return null;
+
+    // 이 함수는 그냥 블록을 만들기만 하는. 딱 하나의 기능만을 가진 함수로 만들자.
+    return newBlock;     
+}
+
+const addBlock = (newBlock, previousBlock) => {
     if (isValidNewBlock(newBlock, previousBlock)) {
         blocks.push(newBlock);
-        return newBlock
+        return true;
     }
-    
-    console.log('fail to create new block')
-    return null;
+    return false;
 }
+
+// 사실상 정리하는 함수 
+// const mineBlock = (blockData) => {
+//     const newBlock = createBlock(blockData);
+//     if (addBlock(newBlock, getLatestBlock()))
+//     {
+//         // 전파 
+//         //responseLatestMessage();
+//         return true;
+//     }
+//     return false;
+// }
+
 
 // 블록의 무결성 검증
 /* 
@@ -190,4 +222,4 @@ const isValidNewBlock = (newBlock, previousBlock) => {
 }
 
 
-export { getBlocks, createBlock, getLatestBlock }
+export { getBlocks, createBlock, getLatestBlock , addBlock , isValidNewBlock }
