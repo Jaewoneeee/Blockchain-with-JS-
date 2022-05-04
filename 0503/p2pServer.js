@@ -4,7 +4,7 @@
 
 import WebSocket from 'ws';
 import { WebSocketServer } from 'ws' 
-import { getBlocks, getLatestBlock, createBlock, addBlock, isValidNewBlock } from './block.js'
+import { getBlocks, getLatestBlock, createBlock, addBlock, isValidNewBlock, replaceBlockchain, isValidBlockchain } from './block.js'
 
 // 메세지 타입 
 const MessageType = {
@@ -76,65 +76,115 @@ const initMessageHandler = (ws) => {
             case MessageType.QUERY_ALL: // 니 블럭좀 달라고 요청하는거 (비교를해야하니까?)
                 write(ws, responseAllMessage());
                 break;
+            // case MessageType.RESPONSE_LATEST: // 니 블럭좀 달라고 요청하는거 (비교를해야하니까?)
+            //     // write(ws, responseAllMessage());
+            //     break;
             case MessageType.RESPONSE_BLOCKCHAIN: //  상대방이 주는 블록을 받는거.(비교한다음에 나한테 주겠지) 누가 블럭을 보내줬다. 즉 나는 받은 상태. 
                 console.log(ws._socket.remoteAddress, ' : ', message.data);
-                //handleBlockChainResponse(message);
-                replaceBlockchain(message.data);
+                handleBlockChainResponse(message.data);
+                //replaceBlockchain(message.data);
                 break;
         }
     })
 }
-
-// 올바른 데이터를 가진 블록인지 검증하기
-const isValidBlockchain = (receiveBlochain) => {
-    // 같은 제네시스 블록인가
-    if (JSON.stringify(receiveBlochain[0]) !== JSON.stringify(getBlocks()[0])){
-        console.log(receiveBlochain[0] , "내거")
-        console.log(getBlocks()[0] , "남거")
-        return false
-    }
+// block.js로 옮기기
+// // 올바른 데이터를 가진 블록인지 검증하기
+// const isValidBlockchain = (receiveBlochain) => {
+//     // 같은 제네시스 블록인가
+//     if (JSON.stringify(receiveBlochain[0]) !== JSON.stringify(getBlocks()[0])){
+//         console.log(receiveBlochain[0] , "남거")
+//         console.log(getBlocks()[0] , "내거")
+//         return false
+//     }
     
-    // 체인 내의 모든 블록을 확인
-    for (let i = 1; i < receiveBlochain.length; i++)
-    {
-        if (isValidNewBlock(receiveBlochain[i], receiveBlochain[i - 1]) == false)
-        {
-            return false
-        }
-    }
+//     // 체인 내의 모든 블록을 확인
+//     for (let i = 1; i < receiveBlochain.length; i++)
+//     {
+//         if (isValidNewBlock(receiveBlochain[i], receiveBlochain[i - 1]) == false)
+//         {
+//             return false
+//         }
+//     }
 
-    return true
-}
+//     return true
+// }
 
-const replaceBlockchain = (receiveBlochain) => {
-    if (isValidBlockchain(receiveBlochain))
-    {
-        let blocks = getBlocks();
-        if (receiveBlochain.length > getBlocks().length)
-        {
-            console.log("길이가 짧다")
-            blocks = receiveBlochain;
-        }
-        else if (receiveBlochain.length == getBlocks().length && random.boolean())
-        {
-            console.log("길이가 같다")
-            blocks = receiveBlochain;
-        }
-    }
-    else {
-        console.log('받은 블록체인에 문제가 있음')
-    }
-} 
+// block.js로 옮기기
+// const replaceBlockchain = (receiveBlochain) => {
+//     // 0504 마지막오류 해결하기 위해 코드 추가
+//     // JSON stringfy parse등 데이터의 형태를 바꿔주는 흐름 잘 보자 
+//     const newBlocks = JSON.parse(receiveBlochain);
+//     console.log(newBlocks)
+
+//     if (isValidBlockchain(newBlocks))
+//     {
+//         //let blocks = getBlocks();
+//         if (receiveBlochain.length > getBlocks().length)
+//         {
+//             console.log("길이가 짧다")
+//             blocks = newBlocks;
+
+//             //blocks
+//             blockchain.forEach((block) => {
+//                 blocks.push(block)
+//             })
+//         }
+//         else if (newBlocks.length == getBlocks().length && random.boolean())
+//         {
+//             console.log("길이가 같다")
+//             blocks = newBlocks;
+//         }
+//     }
+//     else {
+//         console.log('받은 블록체인에 문제가 있음')
+//     }
+// } 
 
 // 블록 바꾸기
 const handleBlockChainResponse = (receiveBlochain) => {
-    // 받은 블록체인이 현재 블록체인보다 짧다면 안바꿈 
+    const newBlocks = JSON.parse(receiveBlochain)
+    // 받아온 블록의 마지막 인덱스가 내 마지막 블록의 인덱스보다 크다. 
+    const latestNewBlock = newBlocks[newBlocks.length - 1];
+    console.log('받아온 마지막 블록', latestNewBlock)
+    const latestMyBlock = getLatestBlock();
+    console.log('내 마지막 블록', latestMyBlock)
 
-    // 받은 블록체인이 현재 블록체인과 같다면 바꾸거나 안바꿈 // 섞는데 의의를 둔다. 
+    if (latestNewBlock.index > latestMyBlock.index)
+    {
+        // 받아온 마지막 블록의 previousHas와 내 마지막 블록의 hash를 확인한다.
+        if (latestNewBlock.previousHash === latestMyBlock.hash)
+        {
+            if (addBlock(latestNewBlock, latestMyBlock))
+            {
+                // 방금 추가한 마지막걸 다시 전파해주기 
+                // 제한된 플러딩을 사용한다. flooding 
+                broadcasting(responseLatestMessage())
+            }
+        }
 
-    // 받은 블록체인이 현재 블록체인보다 길면 바꿈
+        // 받아온 블록의 전체 크기가 1인 경우  -> 재요청
+        else if (newBlocks.length === 1)
+        {
+            broadcasting(queryAllMessage());
+        }
+
+        // 그외 
+        // 받은 블록체인이 현재 블록체인보다 짧다면 안바꿈 
+        // 받은 블록체인이 현재 블록체인과 같다면 바꾸거나 안바꿈 // 섞는데 의의를 둔다. 
+        // 받은 블록체인이 현재 블록체인보다 길면 바꿈
+        else 
+        {
+            replaceBlockchain(newBlocks);
+        }
+        replaceBlockchain(newBlocks)
+
+    }
+    else {
+        console.log("최신화 끝")
+    }
 }
 
+// ============= 여기 어제 작성한곳 
 // 다른 노드한테 마지막 블록을 요청하는 함수
 const queryLatestMessage = () => {  
     return ({ 
@@ -153,8 +203,8 @@ const queryAllMessage = () => {
 const responseLatestMessage = () => {
     return ({ 
         "type" : MessageType.RESPONSE_BLOCKCHAIN,
-        "data" : JSON.stringify( getLatestBlock() /* 내가 가지고 있는 체인의 마지막 블록*/) })    
-}
+        "data" : JSON.stringify( [getLatestBlock()] /* 내가 가지고 있는 체인의 마지막 블록*/) })    
+}                                 
 
 // 요청을 받았을때, 전체블록을 요청한 쪽에 보내는 함수
 const responseAllMessage = () => {
@@ -179,20 +229,26 @@ const broadcasting = (message) => {
 
 // 내가 새로운 블록을 채굴했을 때 연결된 노드들에게 전파
 // 사실상 정리하는 함수. 원래 block.js에 있었는데 구조가 여러군데 겹쳐지기 때문에 p2p서버쪽에서 합쳐서 한다.
-const mineBlock = (blockData) => {
-    const newBlock = createBlock(blockData);
-    if (addBlock(newBlock, getLatestBlock()))
-    {
-        // 전파 
-        broadcasting(responseLatestMessage());
-        // responseLatestMessage 는 그냥 값을 return만해주는거기 때문에
-        // 여기서 받아온 값을 broadcasting함수에 매개변수로 넣기 
 
-        //return true;
+    const mineBlock = (blockData) => {
+        let i = 0 
+
+        while( i < 110) { 
+        const newBlock = createBlock(blockData);
+        if (addBlock(newBlock, getLatestBlock()))
+        {
+            // 전파 
+            broadcasting(responseLatestMessage());
+            // broadcasting(responseAllMessage());
+            // responseLatestMessage 는 그냥 값을 return만해주는거기 때문에
+            // 여기서 받아온 값을 broadcasting함수에 매개변수로 넣기 
+
+            //return true;
+        }
+        // return false;
+        i++
+        }
     }
-    return false;
-}
-
 
 
 export { initP2PServer, connectionToPeer, getPeers, broadcasting, mineBlock }
