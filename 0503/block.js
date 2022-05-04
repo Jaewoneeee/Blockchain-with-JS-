@@ -248,6 +248,9 @@ const replaceBlockchain = (receiveBlochain) => {
             console.log("길이가 같다")
             blocks = receiveBlochain;
         }
+        else
+            console.log("길이가 길다")
+        
     }
     else {
         console.log('받은 블록체인에 문제가 있음')
@@ -279,7 +282,7 @@ const isValidBlockchain = (receiveBlochain) => {
 
 const getAdjustmentDifficulty = () => {
     // 현재 만들어진 블록의 생성 시간, 마지막으로 난이도 조정된 시간 
-    const prevAdjustedBlock = blocks[blocks.length - DIFFICULTY_ADJUSTMENT_INTERVAL - 1];
+    const prevAdjustedBlock = blocks[blocks.length - DIFFICULTY_ADJUSTMENT_INTERVAL];
     const latestBlock = getLatestBlock(); 
     const elapsedTime = latestBlock.timestamp - prevAdjustedBlock.timestamp
                         //마지막블록(ex.30)      //마지막 난이도가 조절된 시간(ex.20)

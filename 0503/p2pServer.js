@@ -176,7 +176,7 @@ const handleBlockChainResponse = (receiveBlochain) => {
         {
             replaceBlockchain(newBlocks);
         }
-        replaceBlockchain(newBlocks)
+        //replaceBlockchain(newBlocks)
 
     }
     else {
